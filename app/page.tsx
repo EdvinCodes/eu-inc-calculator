@@ -327,6 +327,24 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      <footer className="mt-20 py-8 text-center text-slate-400 text-xs border-t border-slate-200/50">
+        <div className="flex justify-center gap-6 mb-2">
+          <a href="#" className="hover:text-slate-600 transition">
+            Terms of Service
+          </a>
+          <a href="#" className="hover:text-slate-600 transition">
+            Privacy Policy
+          </a>
+          <a
+            href="mailto:edvintrabajo@gmail.com"
+            className="hover:text-slate-600 transition"
+          >
+            Contact Support
+          </a>
+        </div>
+        <p>© 2026 EU Inc. Calculator. Not financial advice.</p>
+      </footer>
     </main>
   );
 }
