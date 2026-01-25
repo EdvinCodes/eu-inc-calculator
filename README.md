@@ -76,7 +76,7 @@ npm install
 pnpm dev
 ```
 
-4. Open [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000) with your browser.
+4. Open [http://localhost:3000](http://localhost:3000) with your browser.
 
 ## 🤝 Contributing
 
