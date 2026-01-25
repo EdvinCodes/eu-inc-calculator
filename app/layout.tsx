@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     siteName: "EU Inc. Calculator",
     images: [
       {
-        url: "/og-image.jpg", // La imagen que pusiste en public
+        url: "/preview.png", // La imagen que pusiste en public
         width: 1200,
         height: 630,
       },
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "EU Inc. Equity Calculator",
     description: "Visualize your startup equity value securely.",
-    images: ["/og-image.jpg"],
+    images: ["/preview.png"],
   },
 };
 
