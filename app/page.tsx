@@ -53,6 +53,11 @@ export default function Home() {
   const [companyValuation, setCompanyValuation] = useState(10000000);
   const [totalShares, setTotalShares] = useState(1000000);
 
+  const minVal = 1000000;
+  const maxVal = 100000000;
+  const sliderPercentage =
+    ((companyValuation - minVal) / (maxVal - minVal)) * 100;
+
   // --- LOGIC ---
   const safeTotalShares = totalShares > 0 ? totalShares : 1;
   const sharePrice = companyValuation / safeTotalShares;
@@ -185,14 +190,29 @@ export default function Home() {
                   <div className="px-1">
                     <input
                       type="range"
-                      min="1000000"
-                      max="100000000"
+                      min={minVal}
+                      max={maxVal}
                       step="1000000"
                       value={companyValuation}
                       onChange={(e) =>
                         setCompanyValuation(Number(e.target.value))
                       }
-                      className="w-full accent-blue-600 cursor-grab active:cursor-grabbing h-2 bg-slate-200 rounded-lg appearance-none hover:bg-slate-300 transition-colors"
+                      // CLASES CLAVE: appearance-none + estilos específicos para el "thumb" (la bolita)
+                      className="w-full h-2 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50
+             [&::-webkit-slider-thumb]:appearance-none 
+             [&::-webkit-slider-thumb]:w-6 
+             [&::-webkit-slider-thumb]:h-6 
+             [&::-webkit-slider-thumb]:rounded-full 
+             [&::-webkit-slider-thumb]:bg-white 
+             [&::-webkit-slider-thumb]:border-2 
+             [&::-webkit-slider-thumb]:border-blue-600 
+             [&::-webkit-slider-thumb]:shadow-md 
+             [&::-webkit-slider-thumb]:transition-transform 
+             [&::-webkit-slider-thumb]:hover:scale-110"
+                      // ESTILO DINÁMICO: Esto crea el efecto de barra llena (Azul) vs vacía (Gris)
+                      style={{
+                        background: `linear-gradient(to right, #2563eb ${sliderPercentage}%, #e2e8f0 ${sliderPercentage}%)`,
+                      }}
                     />
                     <div className="flex justify-between text-xs text-slate-500 font-bold mt-3 uppercase tracking-wide">
                       <span>€1M (Seed)</span>
