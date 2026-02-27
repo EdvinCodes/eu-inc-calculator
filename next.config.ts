@@ -1,20 +1,8 @@
-import type { Config } from "tailwindcss";
+// next.config.ts
+import type { NextConfig } from "next";
 
-const config: Config = {
-  content: [
-    // Aquí estaba el error. Le decimos que busque en la raíz, no en src
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
-  theme: {
-    extend: {
-      colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-      },
-    },
-  },
-  plugins: [],
+const nextConfig: NextConfig = {
+  // Aquí irán opciones de Next.js cuando las necesites
 };
-export default config;
+
+export default nextConfig;
