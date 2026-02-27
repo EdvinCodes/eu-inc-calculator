@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { BarChart3, Sparkles } from "lucide-react";
+import { BarChart3, Sparkles, Edit3 } from "lucide-react";
 import {
   calculateScenario,
   type LabeledScenario,
@@ -10,9 +10,17 @@ import {
 
 interface Props {
   scenarios: LabeledScenario[];
+  onUpdateScenario: (
+    id: string,
+    newValuation: number,
+    newLabel?: string,
+  ) => void;
 }
 
-export default function ScenarioComparator({ scenarios }: Props) {
+export default function ScenarioComparator({
+  scenarios,
+  onUpdateScenario,
+}: Props) {
   const computed = useMemo(
     () =>
       scenarios.map((s) => ({
@@ -33,12 +41,11 @@ export default function ScenarioComparator({ scenarios }: Props) {
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               Scenario Comparator
               <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-full">
-                <Sparkles className="w-3 h-3" /> Multi-Round
+                <Sparkles className="w-3 h-3" /> Editable
               </span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Compare ownership and profit across different exit valuations or
-              rounds.
+              Model your own Seed / Series A / Secondary scenarios.
             </p>
           </div>
         </div>
@@ -62,12 +69,51 @@ export default function ScenarioComparator({ scenarios }: Props) {
                 key={s.id}
                 className="bg-slate-50/80 hover:bg-slate-100/80 transition-colors rounded-2xl"
               >
+                {/* Label editable */}
                 <td className="px-4 py-3 font-semibold text-slate-900">
-                  {s.label}
+                  {s.editable ? (
+                    <div className="flex items-center gap-2">
+                      <Edit3 className="w-3 h-3 text-slate-400" />
+                      <input
+                        type="text"
+                        defaultValue={s.label}
+                        onBlur={(e) =>
+                          onUpdateScenario(
+                            s.id,
+                            s.inputs.companyValuation,
+                            e.target.value,
+                          )
+                        }
+                        className="bg-transparent border-b border-dashed border-slate-300 focus:border-blue-500 outline-none text-xs px-0.5 py-0.5"
+                      />
+                    </div>
+                  ) : (
+                    s.label
+                  )}
                 </td>
+
+                {/* Exit valuation editable */}
                 <td className="px-4 py-3 font-mono text-xs text-slate-700">
-                  {formatCurrency(s.inputs.companyValuation, true)}
+                  {s.editable ? (
+                    <input
+                      type="number"
+                      min={0}
+                      step={1_000_000}
+                      defaultValue={s.inputs.companyValuation}
+                      onBlur={(e) =>
+                        onUpdateScenario(
+                          s.id,
+                          Number(e.target.value) || 0,
+                          s.label,
+                        )
+                      }
+                      className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
+                    />
+                  ) : (
+                    formatCurrency(s.inputs.companyValuation, true)
+                  )}
                 </td>
+
                 <td className="px-4 py-3 font-mono text-xs text-slate-700">
                   {s.results.ownership.toFixed(2)}%
                 </td>

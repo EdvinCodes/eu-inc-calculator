@@ -43,6 +43,7 @@ export interface LabeledScenario {
   id: string;
   label: string;
   inputs: ScenarioInputs;
+  editable?: boolean;
 }
 
 export function cloneScenario(

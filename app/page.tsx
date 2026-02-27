@@ -1,8 +1,13 @@
 // app/page.tsx
 "use client";
+
 import { useState, useCallback } from "react";
 import { ShieldCheck } from "lucide-react";
-import { calculateScenario, cloneScenario } from "@/app/lib/calculations";
+import {
+  cloneScenario,
+  type LabeledScenario,
+  calculateScenario,
+} from "@/app/lib/calculations";
 import ScenarioForm from "@/app/components/ScenarioForm";
 import ResultsPanel from "@/app/components/ResultsPanel";
 import TaxEstimator from "@/app/components/TaxEstimator";
@@ -18,29 +23,72 @@ const DEFAULTS = {
 export default function Home() {
   const [inputs, setInputs] = useState(DEFAULTS);
 
-  const handleChange = useCallback((field: string, value: number) => {
-    setInputs((prev) => ({ ...prev, [field]: value }));
-  }, []);
-
-  const results = calculateScenario(inputs);
-
-  const scenarios = [
+  const [scenarios, setScenarios] = useState<LabeledScenario[]>(() => [
     {
       id: "seed",
       label: "Seed €10M",
-      inputs: cloneScenario(inputs, { companyValuation: 10_000_000 }),
+      editable: true,
+      inputs: cloneScenario(DEFAULTS, { companyValuation: 10_000_000 }),
     },
     {
       id: "series-a",
       label: "Series A €30M",
-      inputs: cloneScenario(inputs, { companyValuation: 30_000_000 }),
+      editable: true,
+      inputs: cloneScenario(DEFAULTS, { companyValuation: 30_000_000 }),
     },
     {
       id: "series-b",
       label: "Series B €100M",
-      inputs: cloneScenario(inputs, { companyValuation: 100_000_000 }),
+      editable: true,
+      inputs: cloneScenario(DEFAULTS, { companyValuation: 100_000_000 }),
     },
-  ];
+  ]);
+
+  const handleChange = useCallback((field: string, value: number) => {
+    setInputs((prev) => ({ ...prev, [field]: value }));
+
+    if (
+      field === "shares" ||
+      field === "strikePrice" ||
+      field === "totalShares"
+    ) {
+      setScenarios((prev) =>
+        prev.map((s) => ({
+          ...s,
+          inputs: {
+            ...s.inputs,
+            [field]: value,
+          },
+        })),
+      );
+    }
+  }, []);
+
+  const handleUpdateScenario = useCallback(
+    (id: string, newValuation: number, newLabel?: string) => {
+      setScenarios((prev) =>
+        prev.map((s) =>
+          s.id === id
+            ? {
+                ...s,
+                label: newLabel ?? s.label,
+                inputs: {
+                  ...s.inputs,
+                  // mantiene shares, strike y totalShares sincronizados con el form principal
+                  shares: inputs.shares,
+                  strikePrice: inputs.strikePrice,
+                  totalShares: inputs.totalShares,
+                  companyValuation: newValuation > 0 ? newValuation : 0,
+                },
+              }
+            : s,
+        ),
+      );
+    },
+    [inputs],
+  );
+
+  const results = calculateScenario(inputs);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-slate-50 to-slate-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -75,7 +123,10 @@ export default function Home() {
         </div>
 
         {/* SCENARIO COMPARATOR */}
-        <ScenarioComparator scenarios={scenarios} />
+        <ScenarioComparator
+          scenarios={scenarios}
+          onUpdateScenario={handleUpdateScenario}
+        />
 
         {/* TAX ESTIMATOR SECTION */}
         <div className="mt-8 relative z-10">
