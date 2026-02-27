@@ -6,14 +6,15 @@ import {
   Users,
   Sparkles,
 } from "lucide-react";
-import { formatCurrency } from "@/app/lib/calculations";
+import { formatCurrency, type EquityPlanType } from "@/app/lib/calculations";
 
 interface Props {
   shares: number;
   strikePrice: number;
   companyValuation: number;
   totalShares: number;
-  onChange: (field: string, value: number) => void;
+  planType: EquityPlanType;
+  onChange: (field: string, value: number | string) => void;
 }
 
 const MIN_VAL = 1_000_000;
@@ -24,6 +25,7 @@ export default function ScenarioForm({
   strikePrice,
   companyValuation,
   totalShares,
+  planType,
   onChange,
 }: Props) {
   const sliderPercentage =
@@ -39,6 +41,34 @@ export default function ScenarioForm({
         </div>
         Scenario Configuration
       </h2>
+
+      <div className="flex items-center justify-between mb-6">
+        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          Equity Plan Type
+        </div>
+        <div className="inline-flex items-center bg-slate-100 rounded-full p-1">
+          <button
+            type="button"
+            onClick={() => onChange("planType", "ESOP")}
+            className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
+              planType === "ESOP" ? "bg-slate-900 text-white" : "text-slate-600"
+            }`}
+          >
+            ESOP
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange("planType", "PHANTOM")}
+            className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
+              planType === "PHANTOM"
+                ? "bg-slate-900 text-white"
+                : "text-slate-600"
+            }`}
+          >
+            Phantom
+          </button>
+        </div>
+      </div>
 
       <div className="space-y-8">
         {/* Row 1 */}
@@ -137,6 +167,12 @@ export default function ScenarioForm({
             <span>€100M (Series B/C)</span>
           </div>
         </div>
+
+        <p className="mt-3 text-[11px] text-slate-500">
+          {planType === "PHANTOM"
+            ? "Phantom: no real shares issued, no exercise cost – you receive a cash bonus linked to exit value."
+            : "ESOP: real options with exercise cost, potential higher upside but requires upfront cash."}
+        </p>
       </div>
     </div>
   );

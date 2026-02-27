@@ -1,14 +1,19 @@
 // app/components/ResultsPanel.tsx
 "use client";
 import { TrendingUp, Info, ArrowRight } from "lucide-react";
-import { ScenarioResults, formatCurrency } from "@/app/lib/calculations";
+import {
+  ScenarioResults,
+  formatCurrency,
+  type EquityPlanType,
+} from "@/app/lib/calculations";
 import EquityPieChart from "./EquityPieChart";
 
 interface Props {
   results: ScenarioResults;
+  planType: EquityPlanType;
 }
 
-export default function ResultsPanel({ results }: Props) {
+export default function ResultsPanel({ results, planType }: Props) {
   return (
     <div className="space-y-6">
       {/* Dark Card */}
@@ -18,6 +23,12 @@ export default function ResultsPanel({ results }: Props) {
         <h2 className="text-xs font-bold text-indigo-300/80 uppercase tracking-[0.2em] mb-3 flex items-center gap-2 relative z-10">
           <TrendingUp className="w-3 h-3" /> Estimated Net Profit
         </h2>
+
+        <p className="text-[11px] text-slate-300 mb-4">
+          {planType === "PHANTOM"
+            ? "Phantom shares: cash-settled bonus linked to company value, no real ownership or dilution."
+            : "ESOP: actual equity with exercise cost and potential capital gains upside."}
+        </p>
 
         <div className="relative z-10">
           <div className="text-5xl sm:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-200 to-cyan-400 mb-8 tracking-tight">

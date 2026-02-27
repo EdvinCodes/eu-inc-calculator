@@ -18,6 +18,7 @@ const DEFAULTS = {
   strikePrice: 0.5,
   companyValuation: 10_000_000,
   totalShares: 1_000_000,
+  planType: "ESOP" as const,
 };
 
 export default function Home() {
@@ -44,20 +45,21 @@ export default function Home() {
     },
   ]);
 
-  const handleChange = useCallback((field: string, value: number) => {
+  const handleChange = useCallback((field: string, value: number | string) => {
     setInputs((prev) => ({ ...prev, [field]: value }));
 
     if (
       field === "shares" ||
       field === "strikePrice" ||
-      field === "totalShares"
+      field === "totalShares" ||
+      field === "planType"
     ) {
       setScenarios((prev) =>
         prev.map((s) => ({
           ...s,
           inputs: {
             ...s.inputs,
-            [field]: value,
+            [field]: value as never,
           },
         })),
       );
@@ -78,6 +80,7 @@ export default function Home() {
                   shares: inputs.shares,
                   strikePrice: inputs.strikePrice,
                   totalShares: inputs.totalShares,
+                  planType: inputs.planType,
                   companyValuation: newValuation > 0 ? newValuation : 0,
                 },
               }
@@ -118,7 +121,7 @@ export default function Home() {
             <ScenarioForm {...inputs} onChange={handleChange} />
           </div>
           <div className="lg:col-span-5 sticky top-8">
-            <ResultsPanel results={results} />
+            <ResultsPanel results={results} planType={inputs.planType} />
           </div>
         </div>
 

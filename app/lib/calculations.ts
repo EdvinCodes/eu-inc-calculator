@@ -18,8 +18,13 @@ export interface ScenarioResults {
 export function calculateScenario(inputs: ScenarioInputs): ScenarioResults {
   const safeTotalShares = inputs.totalShares > 0 ? inputs.totalShares : 1;
   const sharePrice = inputs.companyValuation / safeTotalShares;
+
+  const isPhantom = inputs.planType === "PHANTOM";
+
   const equityValue = inputs.shares * sharePrice;
-  const costToExercise = inputs.shares * inputs.strikePrice;
+
+  const costToExercise = isPhantom ? 0 : inputs.shares * inputs.strikePrice;
+
   const grossProfit = equityValue - costToExercise;
 
   return {
@@ -51,4 +56,15 @@ export function cloneScenario(
   overrides?: Partial<ScenarioInputs>,
 ): ScenarioInputs {
   return { ...base, ...overrides };
+}
+
+export type EquityPlanType = "ESOP" | "PHANTOM";
+
+export interface ScenarioInputs {
+  shares: number;
+  strikePrice: number;
+  companyValuation: number;
+  totalShares: number;
+  // opcional: tipo de plan
+  planType?: EquityPlanType;
 }
