@@ -25,6 +25,9 @@ interface Props {
     companyValuation: number;
     totalShares: number;
     planType: EquityPlanType;
+    grantDate: string;
+    vestingMonths: number;
+    cliffMonths: number;
   };
 }
 
@@ -36,6 +39,12 @@ export default function ResultsPanel({ results, planType, inputs }: Props) {
     params.set("pool", inputs.totalShares.toString());
     params.set("val", inputs.companyValuation.toString());
     params.set("plan", planType);
+    // --- NUEVOS PARÁMETROS ---
+    if (inputs.grantDate) params.set("grantDate", inputs.grantDate);
+    if (inputs.vestingMonths)
+      params.set("vestingMonths", inputs.vestingMonths.toString());
+    if (inputs.cliffMonths)
+      params.set("cliffMonths", inputs.cliffMonths.toString());
 
     const shareUrl = `${window.location.origin}${window.location.pathname}?${params}`;
 
@@ -72,6 +81,46 @@ export default function ResultsPanel({ results, planType, inputs }: Props) {
           <div className="text-5xl sm:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-200 to-cyan-400 mb-8 tracking-tight">
             {formatCurrency(results.profit)}
           </div>
+        </div>
+
+        {/* --- NUEVA BARRA DE VESTING --- */}
+        <div className="mt-8 mb-6 relative z-10 bg-slate-800/40 backdrop-blur-md rounded-2xl p-5 border border-slate-700/50">
+          <div className="flex justify-between items-end mb-3">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                Vested Status
+              </p>
+              <p className="font-mono text-sm text-emerald-400 font-bold">
+                {results.vestedPercentage?.toFixed(0) || 0}% Vested
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                Liquid Value Today
+              </p>
+              <p className="font-mono text-sm text-white font-bold">
+                {formatCurrency(results.vestedProfit || 0)}
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden shadow-inner border border-slate-700/50">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700 ease-out"
+              style={{ width: `${results.vestedPercentage || 0}%` }}
+            />
+          </div>
+
+          {(results.vestedPercentage || 0) < 100 && (
+            <p className="text-[11px] text-slate-400 mt-3 text-right">
+              If you leave today, you lose{" "}
+              <span className="text-rose-400 font-bold">
+                {formatCurrency(
+                  (results.profit || 0) - (results.vestedProfit || 0),
+                )}
+              </span>
+            </p>
+          )}
         </div>
 
         <EquityPieChart

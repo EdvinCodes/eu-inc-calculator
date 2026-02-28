@@ -19,7 +19,11 @@ const DEFAULTS = {
   strikePrice: 0.5,
   companyValuation: 10_000_000,
   totalShares: 1_000_000,
-  planType: "ESOP" as EquityPlanType, // Mantenemos este tipado
+  planType: "ESOP" as EquityPlanType,
+  // --- NUEVOS VALORES POR DEFECTO ---
+  grantDate: "2024-01-01", // Asumimos que entró hace un par de años
+  vestingMonths: 48,
+  cliffMonths: 12,
 };
 
 export default function Home() {
@@ -52,7 +56,10 @@ export default function Home() {
         | "strikePrice"
         | "companyValuation"
         | "totalShares"
-        | "planType",
+        | "planType"
+        | "grantDate"
+        | "vestingMonths"
+        | "cliffMonths",
       value: number | string,
     ) => {
       setInputs((prev) => {
@@ -66,7 +73,6 @@ export default function Home() {
           "",
           `${window.location.pathname}?${params}`,
         );
-
         // 2. Save localStorage
         localStorage.setItem(
           "equity-simulator",
@@ -80,14 +86,17 @@ export default function Home() {
         field === "shares" ||
         field === "strikePrice" ||
         field === "totalShares" ||
-        field === "planType"
+        field === "planType" ||
+        field === "grantDate" ||
+        field === "vestingMonths" ||
+        field === "cliffMonths"
       ) {
         setScenarios((currentScenarios) =>
           currentScenarios.map((s) => ({
             ...s,
             inputs: {
               ...s.inputs,
-              [field]: value,
+              [field]: value as never, // Añade 'as never' aquí para calmar a TS
             },
           })),
         );
@@ -111,6 +120,10 @@ export default function Home() {
                   totalShares: inputs.totalShares,
                   planType: inputs.planType,
                   companyValuation: newValuation > 0 ? newValuation : 0,
+                  // --- AÑADE ESTAS 3 LÍNEAS ---
+                  grantDate: inputs.grantDate,
+                  vestingMonths: inputs.vestingMonths,
+                  cliffMonths: inputs.cliffMonths,
                 },
               }
             : s,
@@ -154,11 +167,12 @@ export default function Home() {
       const value = params.get(paramKey);
       if (value !== null) {
         if (fieldKey === "strikePrice") {
-          loadedInputs[fieldKey] = parseFloat(value);
+          loadedInputs[fieldKey] = parseFloat(value) as never;
         } else if (fieldKey === "planType") {
-          loadedInputs[fieldKey] = value as EquityPlanType;
+          loadedInputs[fieldKey] = value as never;
         } else {
-          loadedInputs[fieldKey] = Number(value);
+          // Con 'as never' le decimos a TS que confíe en nosotros
+          loadedInputs[fieldKey] = Number(value) as never;
         }
       }
     });
@@ -177,6 +191,7 @@ export default function Home() {
           label: string;
           valuation: number;
         }>;
+
         setScenarios((current) =>
           current.map((s) => {
             const saved = parsed.find((p) => p.id === s.id);

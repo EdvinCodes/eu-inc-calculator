@@ -5,6 +5,8 @@ import {
   PieChart as PieChartIcon,
   Users,
   Sparkles,
+  Calendar,
+  Hourglass,
 } from "lucide-react";
 import { formatCurrency, type EquityPlanType } from "@/app/lib/calculations";
 
@@ -14,13 +16,21 @@ interface Props {
   companyValuation: number;
   totalShares: number;
   planType: EquityPlanType;
+  // --- NUEVAS PROPIEDADES ---
+  grantDate: string;
+  vestingMonths: number;
+  cliffMonths: number;
+  // --- FIRMA ACTUALIZADA ---
   onChange: (
     field:
       | "shares"
       | "strikePrice"
       | "companyValuation"
       | "totalShares"
-      | "planType",
+      | "planType"
+      | "grantDate"
+      | "vestingMonths"
+      | "cliffMonths",
     value: number | string,
   ) => void;
 }
@@ -34,6 +44,9 @@ export default function ScenarioForm({
   companyValuation,
   totalShares,
   planType,
+  grantDate, // <-- Nuevo
+  vestingMonths, // <-- Nuevo
+  cliffMonths, // <-- Nuevo
   onChange,
 }: Props) {
   // Calculamos el porcentaje crudo y luego lo limitamos (clamp) entre 0 y 100
@@ -124,6 +137,53 @@ export default function ScenarioForm({
           <p className="text-xs text-slate-500 mt-2 font-medium">
             Required to calculate your actual ownership percentage.
           </p>
+        </div>
+
+        {/* Row 3: Vesting Schedule */}
+        <div className="pt-6 border-t border-slate-100/50">
+          <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-blue-500" />
+            Vesting Schedule
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="group/input">
+              <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide group-hover/input:text-blue-600 transition-colors">
+                Grant Date
+              </label>
+              <input
+                type="date"
+                value={grantDate}
+                onChange={(e) => onChange("grantDate", e.target.value)}
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-mono text-sm text-slate-900 shadow-sm hover:border-slate-300"
+              />
+            </div>
+            <div className="group/input">
+              <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide group-hover/input:text-blue-600 transition-colors flex items-center gap-1">
+                <Hourglass className="w-3 h-3" /> Vesting (Months)
+              </label>
+              <input
+                type="number"
+                value={vestingMonths}
+                onChange={(e) =>
+                  onChange("vestingMonths", Number(e.target.value))
+                }
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-mono text-sm text-slate-900 shadow-sm hover:border-slate-300"
+              />
+            </div>
+            <div className="group/input">
+              <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide group-hover/input:text-blue-600 transition-colors">
+                Cliff (Months)
+              </label>
+              <input
+                type="number"
+                value={cliffMonths}
+                onChange={(e) =>
+                  onChange("cliffMonths", Number(e.target.value))
+                }
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-mono text-sm text-slate-900 shadow-sm hover:border-slate-300"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Valuation Slider */}
