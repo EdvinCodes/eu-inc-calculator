@@ -1,16 +1,19 @@
 // app/components/EquityPieChart.tsx
 "use client";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { formatCurrency } from "@/app/lib/calculations";
+import { formatCurrency, type CurrencyType } from "@/app/lib/calculations";
 
 interface Props {
   profit: number;
   costToExercise: number;
   ownership: number;
+  currency: CurrencyType;
 }
 
+// 1. Movemos el CustomTooltip FUERA del componente principal
+// Añadimos 'currency' a sus propiedades esperadas
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload, currency }: any) => {
   if (active && payload?.length) {
     const data = payload[0].payload;
     return (
@@ -22,7 +25,7 @@ const CustomTooltip = ({ active, payload }: any) => {
           {data.name}
         </p>
         <p className="text-xl font-bold font-mono">
-          {formatCurrency(data.value)}
+          {formatCurrency(data.value, currency)}
         </p>
       </div>
     );
@@ -34,6 +37,7 @@ export default function EquityPieChart({
   profit,
   costToExercise,
   ownership,
+  currency,
 }: Props) {
   const chartData = [
     { name: "Net Profit", value: profit, color: "#10b981" },
@@ -72,7 +76,10 @@ export default function EquityPieChart({
               ))}
             </Pie>
             <Tooltip
-              content={<CustomTooltip />}
+              // 2. Usamos una función anónima para inyectarle la prop 'currency' que viene del padre
+              content={(props) => (
+                <CustomTooltip {...props} currency={currency} />
+              )}
               cursor={{ fill: "transparent" }}
               wrapperStyle={{ outline: "none", zIndex: 100 }}
               allowEscapeViewBox={{ x: true, y: true }}

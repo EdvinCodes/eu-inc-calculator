@@ -1,6 +1,7 @@
 // app/lib/calculations.ts
 
 export type EquityPlanType = "ESOP" | "PHANTOM";
+export type CurrencyType = "EUR" | "USD" | "GBP";
 
 export interface ScenarioInputs {
   shares: number;
@@ -12,6 +13,7 @@ export interface ScenarioInputs {
   vestingMonths: number;
   cliffMonths: number;
   expectedDilution: number;
+  currency: CurrencyType;
 }
 
 export interface ScenarioResults {
@@ -30,7 +32,6 @@ export function calculateScenario(inputs: ScenarioInputs): ScenarioResults {
   const safeTotalShares = inputs.totalShares > 0 ? inputs.totalShares : 1;
   const isPhantom = inputs.planType === "PHANTOM";
 
-  // --- MATEMÁTICA DE DILUCIÓN ---
   const dilutionFactor =
     Math.max(0, Math.min(inputs.expectedDilution || 0, 99)) / 100;
   const dilutedTotalShares = safeTotalShares / (1 - dilutionFactor);
@@ -44,12 +45,11 @@ export function calculateScenario(inputs: ScenarioInputs): ScenarioResults {
   const costToExercise = isPhantom ? 0 : inputs.shares * inputs.strikePrice;
   const grossProfit = equityValue - costToExercise;
 
-  // --- LÓGICA DE VESTING ---
   let vestedPercentage = 100;
 
   if (inputs.grantDate && inputs.vestingMonths > 0) {
     const grant = new Date(inputs.grantDate);
-    const now = new Date(); // Usará la fecha actual
+    const now = new Date();
 
     const monthsPassed =
       (now.getFullYear() - grant.getFullYear()) * 12 +
@@ -82,13 +82,24 @@ export function calculateScenario(inputs: ScenarioInputs): ScenarioResults {
   };
 }
 
-export const formatCurrency = (val: number, compact = false) =>
-  new Intl.NumberFormat("en-IE", {
+export const formatCurrency = (
+  val: number,
+  currency: CurrencyType = "EUR",
+  compact = false,
+) => {
+  const locales = {
+    EUR: "en-IE",
+    USD: "en-US",
+    GBP: "en-GB",
+  };
+
+  return new Intl.NumberFormat(locales[currency], {
     style: "currency",
-    currency: "EUR",
+    currency: currency,
     maximumFractionDigits: 0,
     notation: compact ? "compact" : "standard",
   }).format(val);
+};
 
 export interface LabeledScenario {
   id: string;

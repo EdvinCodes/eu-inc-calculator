@@ -8,7 +8,11 @@ import {
   Calendar,
   Hourglass,
 } from "lucide-react";
-import { formatCurrency, type EquityPlanType } from "@/app/lib/calculations";
+import {
+  formatCurrency,
+  type EquityPlanType,
+  type CurrencyType,
+} from "@/app/lib/calculations";
 
 interface Props {
   shares: number;
@@ -20,6 +24,7 @@ interface Props {
   vestingMonths: number;
   cliffMonths: number;
   expectedDilution: number;
+  currency: CurrencyType;
   onChange: (
     field:
       | "shares"
@@ -30,7 +35,8 @@ interface Props {
       | "grantDate"
       | "vestingMonths"
       | "cliffMonths"
-      | "expectedDilution",
+      | "expectedDilution"
+      | "currency",
     value: number | string,
   ) => void;
 }
@@ -48,11 +54,13 @@ export default function ScenarioForm({
   vestingMonths,
   cliffMonths,
   expectedDilution,
+  currency,
   onChange,
 }: Props) {
   const rawPercentage =
     ((companyValuation - MIN_VAL) / (MAX_VAL - MIN_VAL)) * 100;
   const sliderPercentage = Math.max(0, Math.min(rawPercentage, 100));
+  const symbol = currency === "USD" ? "$" : currency === "GBP" ? "£" : "€";
 
   return (
     <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white/60 relative overflow-hidden group">
@@ -65,36 +73,59 @@ export default function ScenarioForm({
         Scenario Configuration
       </h2>
 
-      <div className="flex items-center justify-between mb-6">
-        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-          Equity Plan Type
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+        <div>
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+            Equity Plan Type
+          </div>
+          <div className="inline-flex items-center bg-slate-100 rounded-full p-1">
+            <button
+              type="button"
+              onClick={() => onChange("planType", "ESOP")}
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
+                planType === "ESOP"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600"
+              }`}
+            >
+              ESOP
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange("planType", "PHANTOM")}
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
+                planType === "PHANTOM"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600"
+              }`}
+            >
+              Phantom
+            </button>
+          </div>
         </div>
-        <div className="inline-flex items-center bg-slate-100 rounded-full p-1">
-          <button
-            type="button"
-            onClick={() => onChange("planType", "ESOP")}
-            className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
-              planType === "ESOP" ? "bg-slate-900 text-white" : "text-slate-600"
-            }`}
-          >
-            ESOP
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange("planType", "PHANTOM")}
-            className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
-              planType === "PHANTOM"
-                ? "bg-slate-900 text-white"
-                : "text-slate-600"
-            }`}
-          >
-            Phantom
-          </button>
+
+        <div>
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+            Currency
+          </div>
+          <div className="inline-flex items-center bg-slate-100 rounded-full p-1">
+            {(["EUR", "USD", "GBP"] as CurrencyType[]).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => onChange("currency", c)}
+                className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
+                  currency === c ? "bg-blue-600 text-white" : "text-slate-600"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="space-y-8">
-        {/* Row 1 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="group/input">
             <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2 group-hover/input:text-blue-600 transition-colors">
@@ -110,7 +141,7 @@ export default function ScenarioForm({
           </div>
           <div className="group/input">
             <label className="block text-sm font-bold text-slate-700 mb-2 group-hover/input:text-blue-600 transition-colors">
-              Strike Price (€)
+              Strike Price ({symbol})
             </label>
             <input
               type="number"
@@ -122,7 +153,6 @@ export default function ScenarioForm({
           </div>
         </div>
 
-        {/* Row 2: Pool & Dilution */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="group/input">
             <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2 group-hover/input:text-blue-600 transition-colors">
@@ -158,7 +188,6 @@ export default function ScenarioForm({
           </div>
         </div>
 
-        {/* Row 3: Vesting Schedule */}
         <div className="pt-6 border-t border-slate-100/50">
           <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Calendar className="w-4 h-4 text-blue-500" />
@@ -178,7 +207,7 @@ export default function ScenarioForm({
             </div>
             <div className="group/input">
               <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide group-hover/input:text-blue-600 transition-colors flex items-center gap-1">
-                <Hourglass className="w-3 h-3" /> Vesting (Months)
+                <Hourglass className="w-3 h-3" /> Vesting (Mo)
               </label>
               <input
                 type="number"
@@ -191,7 +220,7 @@ export default function ScenarioForm({
             </div>
             <div className="group/input">
               <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide group-hover/input:text-blue-600 transition-colors">
-                Cliff (Months)
+                Cliff (Mo)
               </label>
               <input
                 type="number"
@@ -205,7 +234,6 @@ export default function ScenarioForm({
           </div>
         </div>
 
-        {/* Valuation Slider */}
         <div className="pt-8 border-t border-slate-100">
           <div className="flex justify-between items-center mb-4">
             <label className="block text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -218,7 +246,7 @@ export default function ScenarioForm({
 
           <div className="relative mb-6 group/val">
             <span className="absolute left-5 top-5 text-slate-400 text-xl pointer-events-none group-focus-within/val:text-blue-500 transition-colors">
-              €
+              {symbol}
             </span>
             <input
               type="number"
@@ -251,17 +279,11 @@ export default function ScenarioForm({
             }}
           />
           <div className="flex justify-between text-xs text-slate-500 font-bold mt-3 uppercase tracking-wide">
-            <span>€1M (Seed)</span>
-            <span>{formatCurrency(companyValuation, true)}</span>
-            <span>€100M (Series B/C)</span>
+            <span>{formatCurrency(1000000, currency, true)} (Seed)</span>
+            <span>{formatCurrency(companyValuation, currency, true)}</span>
+            <span>{formatCurrency(100000000, currency, true)} (Series B)</span>
           </div>
         </div>
-
-        <p className="mt-3 text-[11px] text-slate-500">
-          {planType === "PHANTOM"
-            ? "Phantom: no real shares issued, no exercise cost – you receive a cash bonus linked to exit value."
-            : "ESOP: real options with exercise cost, potential higher upside but requires upfront cash."}
-        </p>
       </div>
     </div>
   );

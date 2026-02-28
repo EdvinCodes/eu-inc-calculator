@@ -8,6 +8,7 @@ import {
   type LabeledScenario,
   calculateScenario,
   type EquityPlanType,
+  type CurrencyType,
 } from "@/app/lib/calculations";
 import ScenarioForm from "@/app/components/ScenarioForm";
 import ResultsPanel from "@/app/components/ResultsPanel";
@@ -24,6 +25,7 @@ const DEFAULTS = {
   vestingMonths: 48,
   cliffMonths: 12,
   expectedDilution: 0,
+  currency: "EUR" as CurrencyType,
 };
 
 export default function Home() {
@@ -60,22 +62,23 @@ export default function Home() {
         | "grantDate"
         | "vestingMonths"
         | "cliffMonths"
-        | "expectedDilution",
+        | "expectedDilution"
+        | "currency",
       value: number | string,
     ) => {
+      // 1. EFECTO SECUNDARIO FUERA DEL SETSTATE (Esto previene el crash del Router)
+      const params = new URLSearchParams(window.location.search);
+      params.set(field, value.toString());
+      window.history.replaceState(
+        {},
+        "",
+        `${window.location.pathname}?${params}`,
+      );
+
+      // 2. ACTUALIZACIÓN DEL ESTADO
       setInputs((prev) => {
         const newInputs = { ...prev, [field]: value as never };
 
-        // 1. Update URL
-        const params = new URLSearchParams(window.location.search);
-        params.set(field, value.toString());
-        window.history.replaceState(
-          {},
-          "",
-          `${window.location.pathname}?${params}`,
-        );
-
-        // 2. Save localStorage
         localStorage.setItem(
           "equity-simulator",
           JSON.stringify({ inputs: newInputs, timestamp: Date.now() }),
@@ -84,6 +87,7 @@ export default function Home() {
         return newInputs;
       });
 
+      // 3. SINCRONIZACIÓN CON LOS ESCENARIOS DE LA TABLA
       if (
         field === "shares" ||
         field === "strikePrice" ||
@@ -92,7 +96,8 @@ export default function Home() {
         field === "grantDate" ||
         field === "vestingMonths" ||
         field === "cliffMonths" ||
-        field === "expectedDilution"
+        field === "expectedDilution" ||
+        field === "currency"
       ) {
         setScenarios((currentScenarios) =>
           currentScenarios.map((s) => ({
@@ -117,15 +122,8 @@ export default function Home() {
                 ...s,
                 label: newLabel ?? s.label,
                 inputs: {
-                  shares: inputs.shares,
-                  strikePrice: inputs.strikePrice,
-                  totalShares: inputs.totalShares,
-                  planType: inputs.planType,
+                  ...inputs,
                   companyValuation: newValuation > 0 ? newValuation : 0,
-                  grantDate: inputs.grantDate,
-                  vestingMonths: inputs.vestingMonths,
-                  cliffMonths: inputs.cliffMonths,
-                  expectedDilution: inputs.expectedDilution,
                 },
               }
             : s,
@@ -161,6 +159,7 @@ export default function Home() {
       val: "companyValuation",
       plan: "planType",
       dil: "expectedDilution",
+      curr: "currency",
     };
 
     Object.entries(paramMap).forEach(([paramKey, fieldKey]) => {
@@ -168,7 +167,11 @@ export default function Home() {
       if (value !== null) {
         if (fieldKey === "strikePrice") {
           loadedInputs[fieldKey] = parseFloat(value) as never;
-        } else if (fieldKey === "planType" || fieldKey === "grantDate") {
+        } else if (
+          fieldKey === "planType" ||
+          fieldKey === "grantDate" ||
+          fieldKey === "currency"
+        ) {
           loadedInputs[fieldKey] = value as never;
         } else {
           loadedInputs[fieldKey] = Number(value) as never;
@@ -241,6 +244,7 @@ export default function Home() {
               results={results}
               planType={inputs.planType}
               inputs={inputs}
+              currency={inputs.currency}
             />
           </div>
         </div>
@@ -248,12 +252,14 @@ export default function Home() {
         <ScenarioComparator
           scenarios={scenarios}
           onUpdateScenario={handleUpdateScenario}
+          currency={inputs.currency}
         />
 
         <div className="mt-8 relative z-10">
           <TaxEstimator
             grossProfit={results.profit}
             vestedProfit={results.vestedProfit}
+            currency={inputs.currency}
           />
         </div>
       </div>

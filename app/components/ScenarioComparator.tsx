@@ -1,3 +1,4 @@
+// app/components/ScenarioComparator.tsx
 "use client";
 
 import { useMemo } from "react";
@@ -6,10 +7,12 @@ import {
   calculateScenario,
   type LabeledScenario,
   formatCurrency,
+  type CurrencyType,
 } from "@/app/lib/calculations";
 
 interface Props {
   scenarios: LabeledScenario[];
+  currency: CurrencyType;
   onUpdateScenario: (
     id: string,
     newValuation: number,
@@ -19,6 +22,7 @@ interface Props {
 
 export default function ScenarioComparator({
   scenarios,
+  currency,
   onUpdateScenario,
 }: Props) {
   const computed = useMemo(
@@ -69,7 +73,6 @@ export default function ScenarioComparator({
                 key={s.id}
                 className="bg-slate-50/80 hover:bg-slate-100/80 transition-colors rounded-2xl"
               >
-                {/* Label editable */}
                 <td className="px-4 py-3 font-semibold text-slate-900">
                   {s.editable ? (
                     <div className="flex items-center gap-2">
@@ -92,7 +95,6 @@ export default function ScenarioComparator({
                   )}
                 </td>
 
-                {/* Exit valuation editable */}
                 <td className="px-4 py-3 font-mono text-xs text-slate-700">
                   {s.editable ? (
                     <input
@@ -110,7 +112,7 @@ export default function ScenarioComparator({
                       className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
                     />
                   ) : (
-                    formatCurrency(s.inputs.companyValuation, true)
+                    formatCurrency(s.inputs.companyValuation, currency, true)
                   )}
                 </td>
 
@@ -118,13 +120,13 @@ export default function ScenarioComparator({
                   {s.results.ownership.toFixed(2)}%
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-emerald-700">
-                  {formatCurrency(s.results.equityValue, true)}
+                  {formatCurrency(s.results.equityValue, currency, true)}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-rose-600">
-                  {formatCurrency(s.results.costToExercise, true)}
+                  {formatCurrency(s.results.costToExercise, currency, true)}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-900 font-bold">
-                  {formatCurrency(s.results.profit, true)}
+                  {formatCurrency(s.results.profit, currency, true)}
                 </td>
               </tr>
             ))}
