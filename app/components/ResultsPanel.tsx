@@ -1,19 +1,27 @@
 // app/components/ResultsPanel.tsx
 "use client";
-import dynamic from "next/dynamic"; // 1. Añade esta importación
-import { TrendingUp, Info, ArrowRight, Share2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import {
+  TrendingUp,
+  Info,
+  ArrowRight,
+  Share2,
+  AlertTriangle,
+} from "lucide-react";
 import {
   ScenarioResults,
   formatCurrency,
   type EquityPlanType,
 } from "@/app/lib/calculations";
 
-// 2. Sustituye la importación normal de EquityPieChart por esta importación dinámica
+// Importación dinámica para evitar errores de hidratación de Recharts
 const EquityPieChart = dynamic(() => import("./EquityPieChart"), {
   ssr: false,
   loading: () => (
-    <div className="h-48 w-full mb-8 animate-pulse bg-slate-800/50 rounded-full" />
-  ), // Skeleton loader bonito
+    <div className="h-48 w-full mb-8 flex items-center justify-center">
+      <div className="w-32 h-32 border-4 border-slate-700 border-t-emerald-500 rounded-full animate-spin"></div>
+    </div>
+  ),
 });
 
 interface Props {
@@ -28,6 +36,7 @@ interface Props {
     grantDate: string;
     vestingMonths: number;
     cliffMonths: number;
+    expectedDilution: number;
   };
 }
 
@@ -39,17 +48,17 @@ export default function ResultsPanel({ results, planType, inputs }: Props) {
     params.set("pool", inputs.totalShares.toString());
     params.set("val", inputs.companyValuation.toString());
     params.set("plan", planType);
-    // --- NUEVOS PARÁMETROS ---
     if (inputs.grantDate) params.set("grantDate", inputs.grantDate);
     if (inputs.vestingMonths)
       params.set("vestingMonths", inputs.vestingMonths.toString());
     if (inputs.cliffMonths)
       params.set("cliffMonths", inputs.cliffMonths.toString());
+    if (inputs.expectedDilution > 0)
+      params.set("dil", inputs.expectedDilution.toString());
 
     const shareUrl = `${window.location.origin}${window.location.pathname}?${params}`;
 
     navigator.clipboard.writeText(shareUrl).then(() => {
-      // Toast visual
       const toast = document.createElement("div");
       toast.textContent = "📋 URL copied to clipboard!";
       toast.className =
@@ -64,27 +73,27 @@ export default function ResultsPanel({ results, planType, inputs }: Props) {
   return (
     <div className="space-y-6">
       {/* Dark Card */}
-      <div className="bg-[#0f172a] text-white p-8 rounded-[2rem] shadow-2xl relative border border-slate-800 ring-1 ring-white/10">
+      <div className="bg-[#0f172a] text-white p-8 rounded-[2rem] shadow-2xl relative border border-slate-800 ring-1 ring-white/10 overflow-hidden">
         <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
 
         <h2 className="text-xs font-bold text-indigo-300/80 uppercase tracking-[0.2em] mb-3 flex items-center gap-2 relative z-10">
           <TrendingUp className="w-3 h-3" /> Estimated Net Profit
         </h2>
 
-        <p className="text-[11px] text-slate-300 mb-4">
+        <p className="text-[11px] text-slate-400 mb-6">
           {planType === "PHANTOM"
             ? "Phantom shares: cash-settled bonus linked to company value, no real ownership or dilution."
             : "ESOP: actual equity with exercise cost and potential capital gains upside."}
         </p>
 
         <div className="relative z-10">
-          <div className="text-5xl sm:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-200 to-cyan-400 mb-8 tracking-tight">
+          <div className="text-5xl sm:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-200 to-cyan-400 mb-2 tracking-tight">
             {formatCurrency(results.profit)}
           </div>
         </div>
 
-        {/* --- NUEVA BARRA DE VESTING --- */}
-        <div className="mt-8 mb-6 relative z-10 bg-slate-800/40 backdrop-blur-md rounded-2xl p-5 border border-slate-700/50">
+        {/* --- BARRA DE VESTING --- */}
+        <div className="mt-6 mb-8 relative z-10 bg-slate-800/40 backdrop-blur-md rounded-2xl p-5 border border-slate-700/50">
           <div className="flex justify-between items-end mb-3">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
@@ -122,6 +131,29 @@ export default function ResultsPanel({ results, planType, inputs }: Props) {
             </p>
           )}
         </div>
+
+        {/* --- ALERTA DE DILUCIÓN --- */}
+        {inputs.expectedDilution > 0 && (
+          <div className="mb-6 bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex items-start gap-3 relative z-10">
+            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-rose-300">
+                Dilution Impact Applied
+              </p>
+              <p className="text-[11px] text-rose-200/70 mt-0.5">
+                Your ownership dropped from{" "}
+                <span className="font-mono font-bold text-white">
+                  {results.originalOwnership.toFixed(3)}%
+                </span>{" "}
+                to{" "}
+                <span className="font-mono font-bold text-white">
+                  {results.ownership.toFixed(3)}%
+                </span>{" "}
+                due to the projected {inputs.expectedDilution}% VC dilution.
+              </p>
+            </div>
+          </div>
+        )}
 
         <EquityPieChart
           profit={results.profit}

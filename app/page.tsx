@@ -20,10 +20,10 @@ const DEFAULTS = {
   companyValuation: 10_000_000,
   totalShares: 1_000_000,
   planType: "ESOP" as EquityPlanType,
-  // --- NUEVOS VALORES POR DEFECTO ---
-  grantDate: "2024-01-01", // Asumimos que entró hace un par de años
+  grantDate: "2024-01-01",
   vestingMonths: 48,
   cliffMonths: 12,
+  expectedDilution: 0,
 };
 
 export default function Home() {
@@ -59,7 +59,8 @@ export default function Home() {
         | "planType"
         | "grantDate"
         | "vestingMonths"
-        | "cliffMonths",
+        | "cliffMonths"
+        | "expectedDilution",
       value: number | string,
     ) => {
       setInputs((prev) => {
@@ -73,6 +74,7 @@ export default function Home() {
           "",
           `${window.location.pathname}?${params}`,
         );
+
         // 2. Save localStorage
         localStorage.setItem(
           "equity-simulator",
@@ -89,14 +91,15 @@ export default function Home() {
         field === "planType" ||
         field === "grantDate" ||
         field === "vestingMonths" ||
-        field === "cliffMonths"
+        field === "cliffMonths" ||
+        field === "expectedDilution"
       ) {
         setScenarios((currentScenarios) =>
           currentScenarios.map((s) => ({
             ...s,
             inputs: {
               ...s.inputs,
-              [field]: value as never, // Añade 'as never' aquí para calmar a TS
+              [field]: value as never,
             },
           })),
         );
@@ -107,7 +110,6 @@ export default function Home() {
 
   const handleUpdateScenario = useCallback(
     (id: string, newValuation: number, newLabel?: string) => {
-      // Usamos el estado previo (prev) para garantizar que los datos siempre estén frescos
       setScenarios((prev) => {
         const updatedScenarios = prev.map((s) =>
           s.id === id
@@ -120,16 +122,15 @@ export default function Home() {
                   totalShares: inputs.totalShares,
                   planType: inputs.planType,
                   companyValuation: newValuation > 0 ? newValuation : 0,
-                  // --- AÑADE ESTAS 3 LÍNEAS ---
                   grantDate: inputs.grantDate,
                   vestingMonths: inputs.vestingMonths,
                   cliffMonths: inputs.cliffMonths,
+                  expectedDilution: inputs.expectedDilution,
                 },
               }
             : s,
         );
 
-        // Guardamos en localStorage usando el array ya actualizado
         const newScenariosData = updatedScenarios.map((s) => ({
           id: s.id,
           label: s.label,
@@ -141,16 +142,14 @@ export default function Home() {
           JSON.stringify(newScenariosData),
         );
 
-        // Retornamos el nuevo estado a React
         return updatedScenarios;
       });
     },
-    [inputs], // Ya solo dependemos de 'inputs', eliminamos 'scenarios' del array
+    [inputs],
   );
 
   const results = calculateScenario(inputs);
 
-  // Load desde URL/localStorage (SIN setState directo)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const loadedInputs: Partial<typeof DEFAULTS> = {};
@@ -161,6 +160,7 @@ export default function Home() {
       pool: "totalShares",
       val: "companyValuation",
       plan: "planType",
+      dil: "expectedDilution",
     };
 
     Object.entries(paramMap).forEach(([paramKey, fieldKey]) => {
@@ -168,10 +168,9 @@ export default function Home() {
       if (value !== null) {
         if (fieldKey === "strikePrice") {
           loadedInputs[fieldKey] = parseFloat(value) as never;
-        } else if (fieldKey === "planType") {
+        } else if (fieldKey === "planType" || fieldKey === "grantDate") {
           loadedInputs[fieldKey] = value as never;
         } else {
-          // Con 'as never' le decimos a TS que confíe en nosotros
           loadedInputs[fieldKey] = Number(value) as never;
         }
       }
@@ -182,7 +181,6 @@ export default function Home() {
       setInputs({ ...DEFAULTS, ...loadedInputs });
     }
 
-    // Load escenarios
     const savedScenarios = localStorage.getItem("equity-simulator-scenarios");
     if (savedScenarios) {
       try {
@@ -211,12 +209,11 @@ export default function Home() {
         console.warn("Failed to load saved scenarios:", e);
       }
     }
-  }, []); // Solo ejecuta una vez al montar
+  }, []);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-slate-50 to-slate-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        {/* HEADER */}
         <div className="text-center mb-16 relative z-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-400/20 rounded-full blur-[100px] -z-10 pointer-events-none" />
           <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur border border-slate-200 text-slate-700 px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm mb-6 cursor-default">
@@ -235,7 +232,6 @@ export default function Home() {
           </p>
         </div>
 
-        {/* GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
           <div className="lg:col-span-7">
             <ScenarioForm {...inputs} onChange={handleChange} />
@@ -249,13 +245,11 @@ export default function Home() {
           </div>
         </div>
 
-        {/* SCENARIO COMPARATOR */}
         <ScenarioComparator
           scenarios={scenarios}
           onUpdateScenario={handleUpdateScenario}
         />
 
-        {/* TAX ESTIMATOR SECTION */}
         <div className="mt-8 relative z-10">
           <TaxEstimator
             grossProfit={results.profit}

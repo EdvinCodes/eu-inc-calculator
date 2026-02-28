@@ -16,11 +16,10 @@ interface Props {
   companyValuation: number;
   totalShares: number;
   planType: EquityPlanType;
-  // --- NUEVAS PROPIEDADES ---
   grantDate: string;
   vestingMonths: number;
   cliffMonths: number;
-  // --- FIRMA ACTUALIZADA ---
+  expectedDilution: number;
   onChange: (
     field:
       | "shares"
@@ -30,7 +29,8 @@ interface Props {
       | "planType"
       | "grantDate"
       | "vestingMonths"
-      | "cliffMonths",
+      | "cliffMonths"
+      | "expectedDilution",
     value: number | string,
   ) => void;
 }
@@ -44,12 +44,12 @@ export default function ScenarioForm({
   companyValuation,
   totalShares,
   planType,
-  grantDate, // <-- Nuevo
-  vestingMonths, // <-- Nuevo
-  cliffMonths, // <-- Nuevo
+  grantDate,
+  vestingMonths,
+  cliffMonths,
+  expectedDilution,
   onChange,
 }: Props) {
-  // Calculamos el porcentaje crudo y luego lo limitamos (clamp) entre 0 y 100
   const rawPercentage =
     ((companyValuation - MIN_VAL) / (MAX_VAL - MIN_VAL)) * 100;
   const sliderPercentage = Math.max(0, Math.min(rawPercentage, 100));
@@ -122,21 +122,40 @@ export default function ScenarioForm({
           </div>
         </div>
 
-        {/* Row 2 */}
-        <div className="group/input">
-          <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2 group-hover/input:text-blue-600 transition-colors">
-            <Users className="w-4 h-4 text-slate-400 group-hover/input:text-blue-500" />
-            Fully Diluted Shares (Pool)
-          </label>
-          <input
-            type="number"
-            value={totalShares}
-            onChange={(e) => onChange("totalShares", Number(e.target.value))}
-            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-mono text-lg text-slate-900 shadow-sm hover:border-slate-300"
-          />
-          <p className="text-xs text-slate-500 mt-2 font-medium">
-            Required to calculate your actual ownership percentage.
-          </p>
+        {/* Row 2: Pool & Dilution */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="group/input">
+            <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2 group-hover/input:text-blue-600 transition-colors">
+              <Users className="w-4 h-4 text-slate-400 group-hover/input:text-blue-500" />
+              Fully Diluted Shares
+            </label>
+            <input
+              type="number"
+              value={totalShares}
+              onChange={(e) => onChange("totalShares", Number(e.target.value))}
+              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-mono text-lg text-slate-900 shadow-sm hover:border-slate-300"
+            />
+          </div>
+          <div className="group/input">
+            <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2 group-hover/input:text-rose-500 transition-colors">
+              Future Dilution (%)
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                max="99"
+                value={expectedDilution}
+                onChange={(e) =>
+                  onChange("expectedDilution", Number(e.target.value))
+                }
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-rose-100 focus:border-rose-400 outline-none transition-all font-mono text-lg text-slate-900 shadow-sm hover:border-slate-300"
+              />
+              <span className="absolute right-4 top-4 font-bold text-slate-400">
+                %
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Row 3: Vesting Schedule */}
