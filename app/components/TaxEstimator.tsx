@@ -11,24 +11,29 @@ import { formatCurrency } from "@/app/lib/calculations";
 
 interface Props {
   grossProfit: number;
+  vestedProfit: number; // <-- Nueva prop
 }
 
-export default function TaxEstimator({ grossProfit }: Props) {
+export default function TaxEstimator({ grossProfit, vestedProfit }: Props) {
   const [selected, setSelected] = useState<TaxJurisdiction>(
     TAX_JURISDICTIONS[0],
   );
   const [customRate, setCustomRate] = useState<string>("");
   const [isOpen, setIsOpen] = useState(false);
+  const [useVested, setUseVested] = useState(false);
 
   const effectiveRate =
     selected.code === "OTHER" && customRate !== ""
       ? Number(customRate)
       : undefined;
 
-  const tax = calculateTax(grossProfit, selected, effectiveRate);
+  // --- USAR LA CANTIDAD CORRECTA ---
+  const amountToTax = useVested ? vestedProfit : grossProfit;
+  const tax = calculateTax(amountToTax, selected, effectiveRate);
 
+  // --- ACTUALIZAR LA BARRA VISUAL ---
   const netBarWidth =
-    grossProfit > 0 ? Math.max((tax.netAfterTax / grossProfit) * 100, 0) : 0;
+    amountToTax > 0 ? Math.max((tax.netAfterTax / amountToTax) * 100, 0) : 0;
   const taxBarWidth = 100 - netBarWidth;
 
   return (
@@ -42,6 +47,35 @@ export default function TaxEstimator({ grossProfit }: Props) {
         </div>
         Tax Estimator by Country
       </h2>
+
+      {/* Toggle Vested vs Total */}
+      <div className="flex items-center justify-between mb-6 bg-slate-50 p-2 rounded-xl border border-slate-200 z-20 relative">
+        <span className="text-sm font-bold text-slate-700 pl-2">
+          Calculate tax on:
+        </span>
+        <div className="flex bg-slate-200/50 p-1 rounded-lg">
+          <button
+            onClick={() => setUseVested(false)}
+            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+              !useVested
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Total Profit
+          </button>
+          <button
+            onClick={() => setUseVested(true)}
+            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+              useVested
+                ? "bg-white text-emerald-600 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Vested Today
+          </button>
+        </div>
+      </div>
 
       {/* Country Selector */}
       <div className="relative mb-6 z-20">
@@ -82,11 +116,13 @@ export default function TaxEstimator({ grossProfit }: Props) {
                 <span className="text-xl">{j.flag}</span>
                 <span className="flex-1 font-medium">{j.name}</span>
                 <span className="text-sm font-mono text-slate-500">
-                  {j.capitalGainsTax}%
+                  {j.brackets ? "Progressive" : `${j.capitalGainsTax}%`}
                 </span>
-                {j.esopDiscount > 0 && (
-                  <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
-                    -{j.esopDiscount}%
+                {j.taxFreeAllowance > 0 && (
+                  <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    {j.taxFreeAllowance >= 1000
+                      ? `€${j.taxFreeAllowance / 1000}k Exempt`
+                      : `€${j.taxFreeAllowance} Exempt`}
                   </span>
                 )}
               </button>

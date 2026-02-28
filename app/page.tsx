@@ -257,7 +257,10 @@ export default function Home() {
 
         {/* TAX ESTIMATOR SECTION */}
         <div className="mt-8 relative z-10">
-          <TaxEstimator grossProfit={results.profit} />
+          <TaxEstimator
+            grossProfit={results.profit}
+            vestedProfit={results.vestedProfit}
+          />
         </div>
       </div>
 

@@ -1,102 +1,82 @@
 // app/lib/taxRates.ts
 
+export interface TaxBracket {
+  upTo: number | null; // null significa "en adelante" (infinito)
+  rate: number;
+}
+
 export interface TaxJurisdiction {
   code: string;
   flag: string;
   name: string;
-  capitalGainsTax: number; // % sobre la ganancia
-  esopDiscount: number; // % de descuento fiscal si hay régimen especial ESOP
+  capitalGainsTax?: number; // Para países con tasa plana
+  brackets?: TaxBracket[]; // Para países con tramos progresivos
+  esopDiscount: number; // Descuento porcentual (ej. 50%)
+  taxFreeAllowance: number; // Cantidad exenta de impuestos (ej. 50000€)
   notes: string;
 }
 
 export const TAX_JURISDICTIONS: TaxJurisdiction[] = [
   {
+    code: "ES",
+    flag: "🇪🇸",
+    name: "Spain (Startup Law)",
+    taxFreeAllowance: 50000, // ¡Los primeros 50k están exentos!
+    esopDiscount: 0,
+    brackets: [
+      { upTo: 6000, rate: 19 },
+      { upTo: 50000, rate: 21 },
+      { upTo: 200000, rate: 23 },
+      { upTo: 300000, rate: 27 },
+      { upTo: null, rate: 28 },
+    ],
+    notes:
+      "Ley de Startups 2023: First €50K exempt. Progressive savings tax up to 28%.",
+  },
+  {
     code: "IE",
     flag: "🇮🇪",
     name: "Ireland",
     capitalGainsTax: 33,
+    taxFreeAllowance: 1270, // Exención anual de CGT en Irlanda
     esopDiscount: 0,
-    notes:
-      "CGT at 33%. KEEP scheme offers income tax relief on approved options.",
-  },
-  {
-    code: "ES",
-    flag: "🇪🇸",
-    name: "Spain",
-    capitalGainsTax: 28,
-    esopDiscount: 50,
-    notes:
-      "Up to 28% on gains >€300K. Startups Law 2023 exempts first €50K on approved ESOPs.",
+    notes: "CGT flat rate at 33%. Annual exemption of €1,270 applied.",
   },
   {
     code: "DE",
     flag: "🇩🇪",
     name: "Germany",
-    capitalGainsTax: 26.375,
+    capitalGainsTax: 26.375, // 25% + 5.5% solidarity
+    taxFreeAllowance: 1000, // Sparer-Pauschbetrag
     esopDiscount: 0,
-    notes:
-      "Abgeltungsteuer 25% + 5.5% solidarity surcharge. Employee share schemes deferred since 2021.",
+    notes: "Abgeltungsteuer ~26.375%. First €1,000 exempt.",
   },
   {
     code: "FR",
     flag: "🇫🇷",
     name: "France",
     capitalGainsTax: 30,
+    taxFreeAllowance: 0,
     esopDiscount: 0,
-    notes:
-      "PFU flat tax of 30% (12.8% income + 17.2% social charges) on capital gains.",
-  },
-  {
-    code: "NL",
-    flag: "🇳🇱",
-    name: "Netherlands",
-    capitalGainsTax: 31,
-    esopDiscount: 0,
-    notes:
-      "Box 2 rate applies at 24.5% up to €67K, 31% above. Options taxed at exercise.",
-  },
-  {
-    code: "PT",
-    flag: "🇵🇹",
-    name: "Portugal",
-    capitalGainsTax: 28,
-    esopDiscount: 50,
-    notes:
-      "NHR regime can reduce to 10%. Startup options have special 50% reduction regime.",
-  },
-  {
-    code: "SE",
-    flag: "🇸🇪",
-    name: "Sweden",
-    capitalGainsTax: 30,
-    esopDiscount: 25,
-    notes:
-      "Qualified ESOP (Kvalificerade personaloptioner) taxed as capital at 30%, not income.",
-  },
-  {
-    code: "EE",
-    flag: "🇪🇪",
-    name: "Estonia",
-    capitalGainsTax: 20,
-    esopDiscount: 0,
-    notes:
-      "20% flat income tax. No separate CGT — equity taxed as income at exercise.",
+    notes: "PFU flat tax of 30% (12.8% income + 17.2% social charges).",
   },
   {
     code: "GB",
     flag: "🇬🇧",
     name: "United Kingdom",
-    capitalGainsTax: 24,
-    esopDiscount: 50,
-    notes: "EMI options: 24% CGT vs 45% income tax. Annual CGT allowance £3K.",
+    capitalGainsTax: 20, // Asumiendo Higher Rate band para CGT general, simplificado
+    taxFreeAllowance: 3000,
+    esopDiscount: 0,
+    notes: "CGT allowance £3K. Assumes higher rate (20%) for non-EMI.",
   },
   {
     code: "OTHER",
     flag: "🌍",
     name: "Other / Custom",
     capitalGainsTax: 30,
+    taxFreeAllowance: 0,
     esopDiscount: 0,
-    notes: "Enter a custom tax rate for your jurisdiction.",
+    notes: "Enter a custom flat tax rate for your jurisdiction.",
   },
 ];
 
@@ -113,11 +93,41 @@ export function calculateTax(
   jurisdiction: TaxJurisdiction,
   customRate?: number,
 ): TaxResult {
-  const rate =
-    customRate !== undefined ? customRate : jurisdiction.capitalGainsTax;
+  // 1. Aplicamos la exención libre de impuestos (ej. los 50k de España)
+  let taxableAmount = Math.max(0, grossProfit - jurisdiction.taxFreeAllowance);
+
+  // 2. Aplicamos descuentos porcentuales si existen
   const discountMultiplier = 1 - jurisdiction.esopDiscount / 100;
-  const taxableAmount = grossProfit * discountMultiplier;
-  const taxPaid = (taxableAmount * rate) / 100;
+  taxableAmount = taxableAmount * discountMultiplier;
+
+  let taxPaid = 0;
+
+  // 3. Calculamos el impuesto
+  if (customRate !== undefined) {
+    // Si el usuario pone un tipo manual, gana el manual
+    taxPaid = (taxableAmount * customRate) / 100;
+  } else if (jurisdiction.brackets) {
+    // Cálculo por tramos progresivos (Magia negra fiscal)
+    let remainingToTax = taxableAmount;
+    let previousLimit = 0;
+
+    for (const bracket of jurisdiction.brackets) {
+      if (remainingToTax <= 0) break;
+
+      const bracketSize = bracket.upTo
+        ? bracket.upTo - previousLimit
+        : Infinity;
+      const amountInThisBracket = Math.min(remainingToTax, bracketSize);
+
+      taxPaid += (amountInThisBracket * bracket.rate) / 100;
+      remainingToTax -= amountInThisBracket;
+      previousLimit = bracket.upTo || previousLimit;
+    }
+  } else {
+    // Cálculo plano (Flat rate)
+    taxPaid = (taxableAmount * (jurisdiction.capitalGainsTax || 0)) / 100;
+  }
+
   const netAfterTax = grossProfit - taxPaid;
 
   return {
