@@ -14,7 +14,15 @@ interface Props {
   companyValuation: number;
   totalShares: number;
   planType: EquityPlanType;
-  onChange: (field: string, value: number | string) => void;
+  onChange: (
+    field:
+      | "shares"
+      | "strikePrice"
+      | "companyValuation"
+      | "totalShares"
+      | "planType",
+    value: number | string,
+  ) => void;
 }
 
 const MIN_VAL = 1_000_000;
@@ -28,8 +36,10 @@ export default function ScenarioForm({
   planType,
   onChange,
 }: Props) {
-  const sliderPercentage =
+  // Calculamos el porcentaje crudo y luego lo limitamos (clamp) entre 0 y 100
+  const rawPercentage =
     ((companyValuation - MIN_VAL) / (MAX_VAL - MIN_VAL)) * 100;
+  const sliderPercentage = Math.max(0, Math.min(rawPercentage, 100));
 
   return (
     <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-white/60 relative overflow-hidden group">

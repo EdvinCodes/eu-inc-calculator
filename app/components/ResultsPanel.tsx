@@ -1,19 +1,57 @@
 // app/components/ResultsPanel.tsx
 "use client";
-import { TrendingUp, Info, ArrowRight } from "lucide-react";
+import dynamic from "next/dynamic"; // 1. Añade esta importación
+import { TrendingUp, Info, ArrowRight, Share2 } from "lucide-react";
 import {
   ScenarioResults,
   formatCurrency,
   type EquityPlanType,
 } from "@/app/lib/calculations";
-import EquityPieChart from "./EquityPieChart";
+
+// 2. Sustituye la importación normal de EquityPieChart por esta importación dinámica
+const EquityPieChart = dynamic(() => import("./EquityPieChart"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-48 w-full mb-8 animate-pulse bg-slate-800/50 rounded-full" />
+  ), // Skeleton loader bonito
+});
 
 interface Props {
   results: ScenarioResults;
   planType: EquityPlanType;
+  inputs: {
+    shares: number;
+    strikePrice: number;
+    companyValuation: number;
+    totalShares: number;
+    planType: EquityPlanType;
+  };
 }
 
-export default function ResultsPanel({ results, planType }: Props) {
+export default function ResultsPanel({ results, planType, inputs }: Props) {
+  const handleShare = () => {
+    const params = new URLSearchParams();
+    params.set("shares", inputs.shares.toString());
+    params.set("strike", inputs.strikePrice.toString());
+    params.set("pool", inputs.totalShares.toString());
+    params.set("val", inputs.companyValuation.toString());
+    params.set("plan", planType);
+
+    const shareUrl = `${window.location.origin}${window.location.pathname}?${params}`;
+
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      // Toast visual
+      const toast = document.createElement("div");
+      toast.textContent = "📋 URL copied to clipboard!";
+      toast.className =
+        "fixed top-4 right-4 bg-emerald-500 text-white px-6 py-3 rounded-2xl shadow-2xl z-50 backdrop-blur-sm border border-emerald-600 font-medium animate-in slide-in-from-top-2 duration-300";
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Dark Card */}
@@ -55,7 +93,13 @@ export default function ResultsPanel({ results, planType }: Props) {
             <p className="text-xs font-bold text-slate-400 mb-1 uppercase tracking-wide">
               Exercise Cost
             </p>
-            <p className="font-mono text-lg text-rose-400 font-medium">
+            <p
+              className={`font-mono text-lg font-medium ${
+                results.costToExercise === 0
+                  ? "text-slate-500"
+                  : "text-rose-400"
+              }`}
+            >
               -{formatCurrency(results.costToExercise, true)}
             </p>
           </div>
@@ -95,6 +139,17 @@ export default function ResultsPanel({ results, planType }: Props) {
             </span>
           </a>
         </div>
+      </div>
+
+      {/* Share Button */}
+      <div className="mt-4 pt-4 border-t border-slate-200/50">
+        <button
+          onClick={handleShare}
+          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white py-4 px-6 rounded-2xl font-bold shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+        >
+          <Share2 className="w-5 h-5" />
+          <span>📋 Share this scenario</span>
+        </button>
       </div>
     </div>
   );

@@ -1,12 +1,13 @@
 // app/page.tsx
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ShieldCheck } from "lucide-react";
 import {
   cloneScenario,
   type LabeledScenario,
   calculateScenario,
+  type EquityPlanType,
 } from "@/app/lib/calculations";
 import ScenarioForm from "@/app/components/ScenarioForm";
 import ResultsPanel from "@/app/components/ResultsPanel";
@@ -18,12 +19,11 @@ const DEFAULTS = {
   strikePrice: 0.5,
   companyValuation: 10_000_000,
   totalShares: 1_000_000,
-  planType: "ESOP" as const,
+  planType: "ESOP" as EquityPlanType, // Mantenemos este tipado
 };
 
 export default function Home() {
   const [inputs, setInputs] = useState(DEFAULTS);
-
   const [scenarios, setScenarios] = useState<LabeledScenario[]>(() => [
     {
       id: "seed",
@@ -45,38 +45,67 @@ export default function Home() {
     },
   ]);
 
-  const handleChange = useCallback((field: string, value: number | string) => {
-    setInputs((prev) => ({ ...prev, [field]: value }));
+  const handleChange = useCallback(
+    (
+      field:
+        | "shares"
+        | "strikePrice"
+        | "companyValuation"
+        | "totalShares"
+        | "planType",
+      value: number | string,
+    ) => {
+      setInputs((prev) => {
+        const newInputs = { ...prev, [field]: value as never };
 
-    if (
-      field === "shares" ||
-      field === "strikePrice" ||
-      field === "totalShares" ||
-      field === "planType"
-    ) {
-      setScenarios((prev) =>
-        prev.map((s) => ({
-          ...s,
-          inputs: {
-            ...s.inputs,
-            [field]: value as never,
-          },
-        })),
-      );
-    }
-  }, []);
+        // 1. Update URL
+        const params = new URLSearchParams(window.location.search);
+        params.set(field, value.toString());
+        window.history.replaceState(
+          {},
+          "",
+          `${window.location.pathname}?${params}`,
+        );
+
+        // 2. Save localStorage
+        localStorage.setItem(
+          "equity-simulator",
+          JSON.stringify({ inputs: newInputs, timestamp: Date.now() }),
+        );
+
+        return newInputs;
+      });
+
+      if (
+        field === "shares" ||
+        field === "strikePrice" ||
+        field === "totalShares" ||
+        field === "planType"
+      ) {
+        setScenarios((currentScenarios) =>
+          currentScenarios.map((s) => ({
+            ...s,
+            inputs: {
+              ...s.inputs,
+              [field]: value,
+            },
+          })),
+        );
+      }
+    },
+    [],
+  );
 
   const handleUpdateScenario = useCallback(
     (id: string, newValuation: number, newLabel?: string) => {
-      setScenarios((prev) =>
-        prev.map((s) =>
+      // Usamos el estado previo (prev) para garantizar que los datos siempre estén frescos
+      setScenarios((prev) => {
+        const updatedScenarios = prev.map((s) =>
           s.id === id
             ? {
                 ...s,
                 label: newLabel ?? s.label,
                 inputs: {
-                  ...s.inputs,
-                  // mantiene shares, strike y totalShares sincronizados con el form principal
                   shares: inputs.shares,
                   strikePrice: inputs.strikePrice,
                   totalShares: inputs.totalShares,
@@ -85,13 +114,89 @@ export default function Home() {
                 },
               }
             : s,
-        ),
-      );
+        );
+
+        // Guardamos en localStorage usando el array ya actualizado
+        const newScenariosData = updatedScenarios.map((s) => ({
+          id: s.id,
+          label: s.label,
+          valuation: s.inputs.companyValuation,
+        }));
+
+        localStorage.setItem(
+          "equity-simulator-scenarios",
+          JSON.stringify(newScenariosData),
+        );
+
+        // Retornamos el nuevo estado a React
+        return updatedScenarios;
+      });
     },
-    [inputs],
+    [inputs], // Ya solo dependemos de 'inputs', eliminamos 'scenarios' del array
   );
 
   const results = calculateScenario(inputs);
+
+  // Load desde URL/localStorage (SIN setState directo)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const loadedInputs: Partial<typeof DEFAULTS> = {};
+
+    const paramMap: Record<string, keyof typeof DEFAULTS> = {
+      shares: "shares",
+      strike: "strikePrice",
+      pool: "totalShares",
+      val: "companyValuation",
+      plan: "planType",
+    };
+
+    Object.entries(paramMap).forEach(([paramKey, fieldKey]) => {
+      const value = params.get(paramKey);
+      if (value !== null) {
+        if (fieldKey === "strikePrice") {
+          loadedInputs[fieldKey] = parseFloat(value);
+        } else if (fieldKey === "planType") {
+          loadedInputs[fieldKey] = value as EquityPlanType;
+        } else {
+          loadedInputs[fieldKey] = Number(value);
+        }
+      }
+    });
+
+    if (Object.keys(loadedInputs).length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setInputs({ ...DEFAULTS, ...loadedInputs });
+    }
+
+    // Load escenarios
+    const savedScenarios = localStorage.getItem("equity-simulator-scenarios");
+    if (savedScenarios) {
+      try {
+        const parsed = JSON.parse(savedScenarios) as Array<{
+          id: string;
+          label: string;
+          valuation: number;
+        }>;
+        setScenarios((current) =>
+          current.map((s) => {
+            const saved = parsed.find((p) => p.id === s.id);
+            return saved
+              ? {
+                  ...s,
+                  label: saved.label,
+                  inputs: {
+                    ...s.inputs,
+                    companyValuation: saved.valuation,
+                  },
+                }
+              : s;
+          }),
+        );
+      } catch (e) {
+        console.warn("Failed to load saved scenarios:", e);
+      }
+    }
+  }, []); // Solo ejecuta una vez al montar
 
   return (
     <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-100 via-slate-50 to-slate-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -121,7 +226,11 @@ export default function Home() {
             <ScenarioForm {...inputs} onChange={handleChange} />
           </div>
           <div className="lg:col-span-5 sticky top-8">
-            <ResultsPanel results={results} planType={inputs.planType} />
+            <ResultsPanel
+              results={results}
+              planType={inputs.planType}
+              inputs={inputs}
+            />
           </div>
         </div>
 
